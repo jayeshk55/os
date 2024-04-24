@@ -1,0 +1,47 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#define BUFFER_SIZE 25
+
+int main() {
+    int pipefd[2];
+    pid_t pid;
+    char buffer[BUFFER_SIZE];
+
+    // Create the pipe
+    if (pipe(pipefd) == -1) {
+        perror("pipe");
+        exit(EXIT_FAILURE);
+    }
+
+    // Fork a child process
+    pid = fork();
+
+    if (pid < 0) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid > 0) { // Parent process
+        close(pipefd[0]); // Close the reading end of the pipe
+
+        printf("Parent process sending message to child process...\n");
+        // Write data to the pipe
+        write(pipefd[1], "Hello, child process!", 22);
+
+        close(pipefd[1]); // Close the writing end of the pipe
+    } else { // Child process
+        close(pipefd[1]); // Close the writing end of the pipe
+
+        printf("Child process receiving message from parent process...\n");
+        // Read data from the pipe
+        read(pipefd[0], buffer, BUFFER_SIZE);
+        printf("Child process received message: %s\n", buffer);
+
+        close(pipefd[0]); // Close the reading end of the pipe
+    }
+
+    return 0;
+}

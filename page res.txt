@@ -1,0 +1,98 @@
+#include <stdio.h>
+#include <stdbool.h>
+
+#define MAX_FRAMES 3
+#define MAX_PAGES 10
+
+int frames[MAX_FRAMES];
+int pages[MAX_PAGES];
+int counter[MAX_FRAMES];
+
+int pageFaults = 0;
+int pageHits = 0;
+
+// Function to initialize frames to -1 (indicating empty)
+void initializeFrames() {
+    for (int i = 0; i < MAX_FRAMES; i++) {
+        frames[i] = -1;
+    }
+}
+
+// Function to find the index of the page in frames (if present), -1 otherwise
+int findPage(int page) {
+    for (int i = 0; i < MAX_FRAMES; i++) {
+        if (frames[i] == page) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Function to find the index of the least recently used page in frames
+int findLRU() {
+    int min = counter[0];
+    int index = 0;
+    for (int i = 1; i < MAX_FRAMES; i++) {
+        if (counter[i] < min) {
+            min = counter[i];
+            index = i;
+        }
+    }
+    return index;
+}
+
+// Function to simulate page replacement using LRU algorithm
+void replacePage(int page, int index) {
+    frames[index] = page;
+    pageFaults++;
+}
+
+// Function to update counters for LRU
+void updateCounters(int index) {
+    for (int i = 0; i < MAX_FRAMES; i++) {
+        if (i != index) {
+            counter[i]++;
+        } else {
+            counter[i] = 0;
+        }
+    }
+}
+
+int main() {
+    // Input sequence of pages (for demonstration purposes)
+    printf("Enter sequence of page references (maximum %d pages, -1 to end):\n", MAX_PAGES);
+    int page, numPages = 0;
+    do {
+        scanf("%d", &page);
+        if (page != -1) {
+            pages[numPages++] = page;
+        }
+    } while (page != -1 && numPages < MAX_PAGES);
+
+    initializeFrames();
+
+    // Simulate page references and replacements
+    for (int i = 0; i < numPages; i++) {
+        int page = pages[i];
+
+        int index = findPage(page);
+        if (index == -1) { // Page fault
+            if (i >= MAX_FRAMES) { // Frames are full, perform page replacement
+                int lruIndex = findLRU();
+                replacePage(page, lruIndex);
+            } else { // Frames are not full yet
+                frames[i] = page;
+            }
+            updateCounters(-1); // Reset counters for LRU
+            updateCounters(findPage(page)); // Update counter for the newly loaded page
+        } else { // Page hit
+            pageHits++;
+            updateCounters(index); // Update counters for LRU
+        }
+    }
+
+    printf("Page faults: %d\n", pageFaults);
+    printf("Page hits: %d\n", pageHits);
+
+    return 0;
+}
