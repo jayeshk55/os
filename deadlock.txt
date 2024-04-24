@@ -1,0 +1,158 @@
+#include <stdio.h>
+#include <stdbool.h>
+
+#define MAX_PROCESSES 5
+#define MAX_RESOURCES 3
+
+int available[MAX_RESOURCES];
+int maximum[MAX_PROCESSES][MAX_RESOURCES];
+int allocation[MAX_PROCESSES][MAX_RESOURCES];
+int need[MAX_PROCESSES][MAX_RESOURCES];
+
+bool finish[MAX_PROCESSES];
+
+// Function to check if a process can request resources safely
+bool isSafe(int process, int request[]) {
+    // Check if the request is within the need of the process
+    for (int i = 0; i < MAX_RESOURCES; i++) {
+        if (request[i] > need[process][i]) {
+            return false;
+        }
+    }
+
+    // Try allocating the resources to the process and see if it remains safe
+    int work[MAX_RESOURCES];
+    for (int i = 0; i < MAX_RESOURCES; i++) {
+        work[i] = available[i];
+    }
+
+    bool finishCopy[MAX_PROCESSES];
+    for (int i = 0; i < MAX_PROCESSES; i++) {
+        finishCopy[i] = finish[i];
+    }
+
+    // Simulate the resource allocation
+    for (int i = 0; i < MAX_RESOURCES; i++) {
+        work[i] -= request[i];
+        allocation[process][i] += request[i];
+        need[process][i] -= request[i];
+    }
+
+    finish[process] = true;
+
+    // Check if the system remains in a safe state after the allocation
+    bool safe = true;
+    while (safe) {
+        safe = false;
+        for (int i = 0; i < MAX_PROCESSES; i++) {
+            if (!finish[i]) {
+                bool needsMet = true;
+                for (int j = 0; j < MAX_RESOURCES; j++) {
+                    if (need[i][j] > work[j]) {
+                        needsMet = false;
+                        break;
+                    }
+                }
+                if (needsMet) {
+                    for (int j = 0; j < MAX_RESOURCES; j++) {
+                        work[j] += allocation[i][j];
+                    }
+                    finish[i] = true;
+                    safe = true;
+                }
+            }
+        }
+    }
+
+    // Restore the original values
+    for (int i = 0; i < MAX_RESOURCES; i++) {
+        allocation[process][i] -= request[i];
+        need[process][i] += request[i];
+    }
+    for (int i = 0; i < MAX_PROCESSES; i++) {
+        finish[i] = finishCopy[i];
+    }
+
+    return finish[process];
+}
+
+// Function to request resources by a process
+bool requestResources(int process, int request[]) {
+    // Check if the request is within the available resources
+    for (int i = 0; i < MAX_RESOURCES; i++) {
+        if (request[i] > available[i]) {
+            return false;
+        }
+    }
+
+    // Check if the request is within the need of the process
+    if (!isSafe(process, request)) {
+        return false;
+    }
+
+    // Allocate the resources
+    for (int i = 0; i < MAX_RESOURCES; i++) {
+        available[i] -= request[i];
+        allocation[process][i] += request[i];
+        need[process][i] -= request[i];
+    }
+
+    return true;
+}
+
+// Function to release resources by a process
+void releaseResources(int process, int release[]) {
+    // Release the resources
+    for (int i = 0; i < MAX_RESOURCES; i++) {
+        available[i] += release[i];
+        allocation[process][i] -= release[i];
+        need[process][i] += release[i];
+    }
+}
+
+int main() {
+    // Initialize available resources
+    available[0] = 3;
+    available[1] = 3;
+    available[2] = 2;
+
+    // Initialize maximum resources for each process
+    maximum[0][0] = 7;
+    maximum[0][1] = 5;
+    maximum[0][2] = 3;
+    maximum[1][0] = 3;
+    maximum[1][1] = 2;
+    maximum[1][2] = 2;
+    maximum[2][0] = 9;
+    maximum[2][1] = 0;
+    maximum[2][2] = 2;
+    maximum[3][0] = 2;
+    maximum[3][1] = 2;
+    maximum[3][2] = 2;
+    maximum[4][0] = 4;
+    maximum[4][1] = 3;
+    maximum[4][2] = 3;
+
+    // Initialize allocation and need matrices
+    for (int i = 0; i < MAX_PROCESSES; i++) {
+        for (int j = 0; j < MAX_RESOURCES; j++) {
+            allocation[i][j] = 0;
+            need[i][j] = maximum[i][j];
+        }
+        finish[i] = false;
+    }
+
+    // Example usage of requestResources and releaseResources functions
+    int process = 1;
+    int request[MAX_RESOURCES] = {0, 2, 0};
+    if (requestResources(process, request)) {
+        printf("Request granted.\n");
+    } else {
+        printf("Request denied.\n");
+    }
+
+    int release[MAX_RESOURCES] = {0, 2, 0};
+    releaseResources(process, release);
+
+    return 0;
+}
